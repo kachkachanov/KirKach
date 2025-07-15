@@ -67,7 +67,7 @@ class FillingCategoryProductTests {
 			Product product = new Product();
 			product.setName(baseName + " " + i);
 			product.setDescription("Описание для " + baseName + " " + i);
-			product.setPrice(100 + i * 10);
+			product.setPrice(100.0 + i * 10.0);
 			product.setCategory(category);
 			productRepository.save(product);
 		}
