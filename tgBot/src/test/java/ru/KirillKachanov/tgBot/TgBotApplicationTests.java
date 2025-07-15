@@ -1,5 +1,10 @@
 package ru.KirillKachanov.tgBot;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import ru.KirillKachanov.tgBot.entity.Category;
+import ru.KirillKachanov.tgBot.entity.Product;
+import ru.KirillKachanov.tgBot.repository.CategoryRepository;
+import ru.KirillKachanov.tgBot.repository.ProductRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 @SpringBootTest
