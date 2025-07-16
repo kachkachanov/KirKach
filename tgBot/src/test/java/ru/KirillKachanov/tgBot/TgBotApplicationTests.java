@@ -1,15 +1,21 @@
 package ru.KirillKachanov.tgBot;
 
 import ru.KirillKachanov.tgBot.entity.Category;
+import ru.KirillKachanov.tgBot.entity.Client;
+import ru.KirillKachanov.tgBot.entity.ClientOrder;
+import ru.KirillKachanov.tgBot.entity.OrderProduct;
 import ru.KirillKachanov.tgBot.entity.Product;
 import ru.KirillKachanov.tgBot.repository.CategoryRepository;
 import ru.KirillKachanov.tgBot.repository.ClientOrderRepository;
 import ru.KirillKachanov.tgBot.repository.ClientRepository;
-import ru.KirillKachanov.tgBot.repository.ProductOrderRepository;
+import ru.KirillKachanov.tgBot.repository.OrderProductRepository;
 import ru.KirillKachanov.tgBot.repository.ProductRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @SpringBootTest
 class FillingCategoryProductTests {
@@ -21,7 +27,7 @@ class FillingCategoryProductTests {
 	private ProductRepository productRepository;
 
 	@Autowired
-	private ProductOrderRepository orderRepository;
+	private OrderProductRepository orderRepository;
 
 	@Autowired
 	private ClientRepository clientRepository;
@@ -64,12 +70,4 @@ class FillingCategoryProductTests {
 			productRepository.save(product);
 		}
 	}
-}
-@SpringBootTest
-class TgBotApplicationTests {
-
-	@Test
-	void contextLoads() {
-	}
-
 }

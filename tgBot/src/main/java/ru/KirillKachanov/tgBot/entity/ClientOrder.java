@@ -47,7 +47,6 @@ public class ClientOrder {
     public List<OrderProduct> getProductOrders() { return productOrders; }
     public void setProductOrders(List<OrderProduct> productOrders) { this.productOrders = productOrders; }
 
-    // Метод для добавления ProductOrder
     public void addProductOrder(OrderProduct productOrder) {
         productOrders.add(productOrder);
         productOrder.setClientOrder(this);
