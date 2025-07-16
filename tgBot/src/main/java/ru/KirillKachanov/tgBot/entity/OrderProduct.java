@@ -15,7 +15,9 @@ public class OrderProduct {
     @ManyToOne
     @JoinColumn(name = "product_id")
     private Product product;
-
+    @ManyToOne
+    @JoinColumn(name = "product_order_id")
+    private ProductOrder productOrder;
     @Column(nullable = false)
     private Long countProduct;
 

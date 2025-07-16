@@ -20,7 +20,7 @@ public class ProductOrder {
 
     private Double totalPrice;
 
-    @OneToMany(mappedBy = "clientOrder", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "productOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderProduct> orderProducts = new ArrayList<>();
 
     public ProductOrder() {
