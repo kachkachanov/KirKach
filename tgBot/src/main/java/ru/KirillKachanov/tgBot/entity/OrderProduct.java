@@ -5,7 +5,9 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "order_products")
+@Table(name = "order_products", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"customerName", "orderDate", "product_id", "client_order_id"})
+})
 public class OrderProduct {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
