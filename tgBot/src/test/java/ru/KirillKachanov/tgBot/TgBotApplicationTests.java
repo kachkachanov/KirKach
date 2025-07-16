@@ -50,6 +50,29 @@ class FillingCategoryProductTests {
 		// Продукты
 		addProductsToCategory(classicRolls, "Классический ролл");
 		addProductsToCategory(bakedRolls, "Запеченный ролл");
+
+		// Клиент (с заполнением обязательных полей)
+		Client client = new Client();
+		client.setFullName("Иван Иванов");
+		client.setExternalId(12345L);       // Обязательное поле
+		client.setPhoneNumber("+71234567890"); // Обязательное поле
+		client.setAddress("ул. Тестовая, 1"); // Обязательное поле
+		client = clientRepository.save(client);
+
+		// Заказ клиента
+		ClientOrder clientOrder = new ClientOrder(client, 1, 0.0);
+		clientOrder = clientOrderRepository.save(clientOrder);
+
+		// Продукты в заказе
+		Product classicRoll1 = productRepository.findAllByCategory(classicRolls).get(0);
+		Product bakedRoll1 = productRepository.findAllByCategory(bakedRolls).get(0);
+
+		// Создание через конструктор
+		OrderProduct order1 = new OrderProduct("Иван Иванов", classicRoll1, 2L, clientOrder);
+		OrderProduct order2 = new OrderProduct("Иван Иванов", bakedRoll1, 1L, clientOrder);
+
+		orderRepository.save(order1);
+		orderRepository.save(order2);
 	}
 
 	private Category saveCategory(String name, Category parent) {
