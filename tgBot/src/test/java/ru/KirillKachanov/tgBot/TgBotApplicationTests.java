@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest
-public class FillingTests {
+class FillingTests {
 
 	@Autowired
 	private CategoryRepository categoryRepository;
