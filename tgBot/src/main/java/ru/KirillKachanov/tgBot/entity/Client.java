@@ -20,6 +20,7 @@ public class Client {
     @Column(nullable = false, length = 400)
     private String address;
 
+    // Геттеры и сеттеры
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Long getExternalId() { return externalId; }

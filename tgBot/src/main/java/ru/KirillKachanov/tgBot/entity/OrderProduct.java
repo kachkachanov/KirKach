@@ -32,7 +32,7 @@ public class OrderProduct {
 
     // Конструкторы
     public OrderProduct() {
-        this.orderDate = LocalDateTime.now(); // Автоматическое установление времени
+        this.orderDate = LocalDateTime.now();
     }
 
     public OrderProduct(String customerName, Product product, Long countProduct, ClientOrder clientOrder) {
@@ -40,29 +40,23 @@ public class OrderProduct {
         this.product = product;
         this.countProduct = countProduct;
         this.clientOrder = clientOrder;
-        this.orderDate = LocalDateTime.now(); // Автоматическое установление времени
+        this.orderDate = LocalDateTime.now();
     }
 
     // Геттеры и сеттеры
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-
     public String getCustomerName() { return customerName; }
     public void setCustomerName(String customerName) { this.customerName = customerName; }
-
     public LocalDateTime getOrderDate() { return orderDate; }
     public void setOrderDate(LocalDateTime orderDate) { this.orderDate = orderDate; }
-
     public Product getProduct() { return product; }
     public void setProduct(Product product) { this.product = product; }
-
     public Long getCountProduct() { return countProduct; }
     public void setCountProduct(Long countProduct) { this.countProduct = countProduct; }
-
     public ClientOrder getClientOrder() { return clientOrder; }
     public void setClientOrder(ClientOrder clientOrder) { this.clientOrder = clientOrder; }
 
-    // Упрощенное представление для логирования и отладки
     @Override
     public String toString() {
         return "OrderProduct{" +

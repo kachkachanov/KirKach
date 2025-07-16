@@ -16,6 +16,7 @@ import ru.KirillKachanov.tgBot.repository.OrderProductRepository;
 import ru.KirillKachanov.tgBot.repository.ProductRepository;
 
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 @SpringBootTest
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
@@ -70,10 +71,10 @@ class FillingCategoryProductTests {
 		addProductsToCategory(classicRolls, "Классический ролл");
 		addProductsToCategory(bakedRolls, "Запеченный ролл");
 
-		// Клиент
+		// Клиент с уникальным externalId
 		Client client = new Client();
 		client.setFullName("Иван Иванов");
-		client.setExternalId(12345L);
+		client.setExternalId(generateUniqueExternalId());
 		client.setPhoneNumber("+71234567890");
 		client.setAddress("ул. Тестовая, 1");
 		client = clientRepository.save(client);
@@ -102,6 +103,10 @@ class FillingCategoryProductTests {
 		// Синхронизация двусторонней связи
 		clientOrder.addProductOrder(order1);
 		clientOrder.addProductOrder(order2);
-		clientOrderRepository.save(clientOrder); // Сохраняет clientOrder и связанные order1, order2
+		clientOrderRepository.save(clientOrder);
+	}
+
+	private Long generateUniqueExternalId() {
+		return System.currentTimeMillis() + ThreadLocalRandom.current().nextLong(1000);
 	}
 }
