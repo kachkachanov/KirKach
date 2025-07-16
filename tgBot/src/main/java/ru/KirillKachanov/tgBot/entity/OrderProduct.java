@@ -15,7 +15,7 @@ public class OrderProduct {
     private String customerName;
 
     @Column(nullable = false)
-    private LocalDateTime orderDate;
+    private LocalDateTime orderDate = LocalDateTime.now();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
@@ -31,16 +31,13 @@ public class OrderProduct {
     private ClientOrder clientOrder;
 
     // Конструкторы
-    public OrderProduct() {
-        this.orderDate = LocalDateTime.now();
-    }
+    public OrderProduct() {}
 
     public OrderProduct(String customerName, Product product, Long countProduct, ClientOrder clientOrder) {
         this.customerName = customerName;
         this.product = product;
         this.countProduct = countProduct;
         this.clientOrder = clientOrder;
-        this.orderDate = LocalDateTime.now();
     }
 
     // Геттеры и сеттеры
@@ -56,16 +53,4 @@ public class OrderProduct {
     public void setCountProduct(Long countProduct) { this.countProduct = countProduct; }
     public ClientOrder getClientOrder() { return clientOrder; }
     public void setClientOrder(ClientOrder clientOrder) { this.clientOrder = clientOrder; }
-
-    @Override
-    public String toString() {
-        return "OrderProduct{" +
-                "id=" + id +
-                ", customerName='" + customerName + '\'' +
-                ", orderDate=" + orderDate +
-                ", productId=" + (product != null ? product.getId() : "null") +
-                ", countProduct=" + countProduct +
-                ", clientOrderId=" + (clientOrder != null ? clientOrder.getId() : "null") +
-                '}';
-    }
 }

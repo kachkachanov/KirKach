@@ -9,7 +9,7 @@ import java.util.List;
 @Entity
 public class ClientOrder {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne
@@ -26,8 +26,7 @@ public class ClientOrder {
     @Column(nullable = false)
     private Double total;
 
-    public ClientOrder() {
-    }
+    public ClientOrder() {}
 
     public ClientOrder(Client client, Integer status, Double total) {
         this.client = client;
