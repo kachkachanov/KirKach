@@ -23,14 +23,19 @@ public class ProductOrder {
     @Column(nullable = false)
     private Long countProduct;
 
+    @ManyToOne
+    @JoinColumn(name = "client_order_id")
+    private ClientOrder clientOrder;
+
     public ProductOrder() {
     }
 
-    public ProductOrder(String customerName, LocalDateTime orderDate, Product product, Long countProduct) {
+    public ProductOrder(String customerName, LocalDateTime orderDate, Product product, Long countProduct, ClientOrder clientOrder) {
         this.customerName = customerName;
         this.orderDate = orderDate;
         this.product = product;
         this.countProduct = countProduct;
+        this.clientOrder = clientOrder;
     }
 
     public Long getId() { return id; }
@@ -43,4 +48,6 @@ public class ProductOrder {
     public void setProduct(Product product) { this.product = product; }
     public Long getCountProduct() { return countProduct; }
     public void setCountProduct(Long countProduct) { this.countProduct = countProduct; }
+    public ClientOrder getClientOrder() { return clientOrder; }
+    public void setClientOrder(ClientOrder clientOrder) { this.clientOrder = clientOrder; }
 }
