@@ -1,5 +1,5 @@
 package ru.KirillKachanov.tgBot.entity;
-
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,14 +14,16 @@ public class ClientOrder {
     @JoinColumn(name = "client_id", nullable = false)
     private Client client;
 
+    @OneToMany(mappedBy = "clientOrder", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnoreProperties("clientOrder")
+    private List<OrderProduct> productOrders = new ArrayList<>();
+
     @Column(nullable = false)
     private Integer status;
 
     @Column(nullable = false)
     private Double total;
 
-    @OneToMany(mappedBy = "clientOrder", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<OrderProduct> productOrders = new ArrayList<>();
 
     public ClientOrder() {
     }
