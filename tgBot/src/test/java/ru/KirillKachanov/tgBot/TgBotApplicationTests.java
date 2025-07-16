@@ -1,23 +1,24 @@
 package ru.KirillKachanov.tgBot;
 
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.DirtiesContext;
 import ru.KirillKachanov.tgBot.entity.Category;
 import ru.KirillKachanov.tgBot.entity.Client;
 import ru.KirillKachanov.tgBot.entity.ClientOrder;
 import ru.KirillKachanov.tgBot.entity.OrderProduct;
 import ru.KirillKachanov.tgBot.entity.Product;
 import ru.KirillKachanov.tgBot.repository.CategoryRepository;
-import ru.KirillKachanov.tgBot.repository.ClientOrderRepository;
 import ru.KirillKachanov.tgBot.repository.ClientRepository;
+import ru.KirillKachanov.tgBot.repository.ClientOrderRepository;
 import ru.KirillKachanov.tgBot.repository.OrderProductRepository;
 import ru.KirillKachanov.tgBot.repository.ProductRepository;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @SpringBootTest
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class FillingCategoryProductTests {
 
 	@Autowired
@@ -27,53 +28,13 @@ class FillingCategoryProductTests {
 	private ProductRepository productRepository;
 
 	@Autowired
-	private OrderProductRepository orderRepository;
-
-	@Autowired
 	private ClientRepository clientRepository;
 
 	@Autowired
 	private ClientOrderRepository clientOrderRepository;
 
-	@Test
-	void createCategoriesAndOrders() {
-		// Корневые категории
-		Category pizza = saveCategory("Пицца", null);
-		Category rolls = saveCategory("Роллы", null);
-		Category burgers = saveCategory("Бургеры", null);
-		Category drinks = saveCategory("Напитки", null);
-
-		// Подкатегории для Роллы
-		Category classicRolls = saveCategory("Классические роллы", rolls);
-		Category bakedRolls = saveCategory("Запеченные роллы", rolls);
-
-		// Продукты
-		addProductsToCategory(classicRolls, "Классический ролл");
-		addProductsToCategory(bakedRolls, "Запеченный ролл");
-
-		// Клиент (с заполнением обязательных полей)
-		Client client = new Client();
-		client.setFullName("Иван Иванов");
-		client.setExternalId(12345L);       // Обязательное поле
-		client.setPhoneNumber("+71234567890"); // Обязательное поле
-		client.setAddress("ул. Тестовая, 1"); // Обязательное поле
-		client = clientRepository.save(client);
-
-		// Заказ клиента
-		ClientOrder clientOrder = new ClientOrder(client, 1, 0.0);
-		clientOrder = clientOrderRepository.save(clientOrder);
-
-		// Продукты в заказе
-		Product classicRoll1 = productRepository.findAllByCategory(classicRolls).get(0);
-		Product bakedRoll1 = productRepository.findAllByCategory(bakedRolls).get(0);
-
-		// Создание через конструктор
-		OrderProduct order1 = new OrderProduct("Иван Иванов", classicRoll1, 2L, clientOrder);
-		OrderProduct order2 = new OrderProduct("Иван Иванов", bakedRoll1, 1L, clientOrder);
-
-		orderRepository.save(order1);
-		orderRepository.save(order2);
-	}
+	@Autowired
+	private OrderProductRepository orderRepository;
 
 	private Category saveCategory(String name, Category parent) {
 		Category category = new Category();
@@ -91,5 +52,56 @@ class FillingCategoryProductTests {
 			product.setCategory(category);
 			productRepository.save(product);
 		}
+	}
+
+	@Test
+	void createCategoriesAndOrders() {
+		// Корневые категории
+		Category pizza = saveCategory("Пицца", null);
+		Category rolls = saveCategory("Роллы", null);
+		Category burgers = saveCategory("Бургеры", null);
+		Category drinks = saveCategory("Напитки", null);
+
+		// Подкатегории для Роллы
+		Category classicRolls = saveCategory("Классические роллы", rolls);
+		Category bakedRolls = saveCategory("Запеченные роллы", rolls);
+
+		// Продукты
+		addProductsToCategory(classicRolls, "Классический ролл");
+		addProductsToCategory(bakedRolls, "Запеченный ролл");
+
+		// Клиент
+		Client client = new Client();
+		client.setFullName("Иван Иванов");
+		client.setExternalId(12345L);
+		client.setPhoneNumber("+71234567890");
+		client.setAddress("ул. Тестовая, 1");
+		client = clientRepository.save(client);
+
+		// Заказ клиента
+		ClientOrder clientOrder = new ClientOrder(client, 1, 0.0);
+		clientOrder = clientOrderRepository.save(clientOrder);
+
+		// Продукты в заказе
+		List<Product> classicRollsProducts = productRepository.findAllByCategory(classicRolls);
+		if (classicRollsProducts.isEmpty()) {
+			throw new IllegalStateException("No products found for category: " + classicRolls.getName());
+		}
+		Product classicRoll1 = classicRollsProducts.get(0);
+
+		List<Product> bakedRollsProducts = productRepository.findAllByCategory(bakedRolls);
+		if (bakedRollsProducts.isEmpty()) {
+			throw new IllegalStateException("No products found for category: " + bakedRolls.getName());
+		}
+		Product bakedRoll1 = bakedRollsProducts.get(0);
+
+		// Создание через конструктор
+		OrderProduct order1 = new OrderProduct("Иван Иванов", classicRoll1, 2L, clientOrder);
+		OrderProduct order2 = new OrderProduct("Иван Иванов", bakedRoll1, 1L, clientOrder);
+
+		// Синхронизация двусторонней связи
+		clientOrder.addProductOrder(order1);
+		clientOrder.addProductOrder(order2);
+		clientOrderRepository.save(clientOrder); // Сохраняет clientOrder и связанные order1, order2
 	}
 }
