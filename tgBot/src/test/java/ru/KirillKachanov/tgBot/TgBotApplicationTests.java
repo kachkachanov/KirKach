@@ -7,12 +7,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import ru.KirillKachanov.tgBot.entity.*;
 import ru.KirillKachanov.tgBot.repository.*;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest
-class FillingTests {
+public class FillingTests {
 
 	@Autowired
 	private CategoryRepository categoryRepository;
@@ -32,7 +33,6 @@ class FillingTests {
 	@BeforeEach
 	@Transactional
 	public void clearDatabase() {
-		// Очистка базы данных перед каждым тестом
 		orderProductRepository.deleteAll();
 		clientOrderRepository.deleteAll();
 		productRepository.deleteAll();
@@ -99,12 +99,10 @@ class FillingTests {
 	@Test
 	@Transactional
 	public void testCreateOrderProduct() {
-		// Создание категории
 		Category category = new Category();
 		category.setName("Electronics");
 		category = categoryRepository.save(category);
 
-		// Создание продукта
 		Product product = new Product();
 		product.setName("Smartphone");
 		product.setDescription("High-end smartphone");
@@ -112,7 +110,6 @@ class FillingTests {
 		product.setCategory(category);
 		product = productRepository.save(product);
 
-		// Создание клиента
 		Client client = new Client();
 		client.setExternalId(System.currentTimeMillis());
 		client.setFullName("John Doe");
@@ -120,17 +117,16 @@ class FillingTests {
 		client.setAddress("123 Main St");
 		client = clientRepository.save(client);
 
-		// Создание заказа клиента
 		ClientOrder clientOrder = new ClientOrder(client, 1, 0.0);
 		clientOrder = clientOrderRepository.save(clientOrder);
 
-		// Создание OrderProduct
 		OrderProduct orderProduct = new OrderProduct();
 		orderProduct.setCustomerName("Customer_" + System.currentTimeMillis());
 		orderProduct.setProduct(product);
 		orderProduct.setCountProduct(2L);
 		orderProduct.setClientOrder(clientOrder);
-		orderProduct.setOrderDate(LocalDateTime.now());
+		orderProduct.setOrderDate(LocalDateTime.now().plusNanos(System.nanoTime()));
+		System.out.println("Создаём OrderProduct: " + orderProduct);
 		orderProduct = orderProductRepository.save(orderProduct);
 
 		assertNotNull(orderProduct.getId(), "OrderProduct должен быть сохранен с непустым ID");
