@@ -7,87 +7,133 @@ import org.springframework.boot.test.context.SpringBootTest;
 import ru.KirillKachanov.tgBot.entity.*;
 import ru.KirillKachanov.tgBot.repository.*;
 
-import java.util.List;
+import javax.transaction.Transactional;
+import java.time.LocalDateTime;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest
-class FillingCategoryProductTests {
+public class FillingTests {
 
-	@Autowired private CategoryRepository categoryRepository;
-	@Autowired private ProductRepository productRepository;
-	@Autowired private ClientRepository clientRepository;
-	@Autowired private ClientOrderRepository clientOrderRepository;
-	@Autowired private OrderProductRepository orderProductRepository;
+	@Autowired
+	private CategoryRepository categoryRepository;
+
+	@Autowired
+	private ProductRepository productRepository;
+
+	@Autowired
+	private ClientRepository clientRepository;
+
+	@Autowired
+	private ClientOrderRepository clientOrderRepository;
+
+	@Autowired
+	private OrderProductRepository orderProductRepository;
 
 	@BeforeEach
-	void clearDatabase() {
+	@Transactional
+	public void clearDatabase() {
+		// Очистка базы данных перед каждым тестом
 		orderProductRepository.deleteAll();
 		clientOrderRepository.deleteAll();
-		clientRepository.deleteAll();
 		productRepository.deleteAll();
+		clientRepository.deleteAll();
 		categoryRepository.deleteAll();
 	}
 
-	private Category createCategory(String name, Category parent) {
+	@Test
+	@Transactional
+	public void testCreateCategory() {
 		Category category = new Category();
-		category.setName(name);
-		category.setParent(parent);
-		return categoryRepository.save(category);
-	}
+		category.setName("Electronics");
+		category = categoryRepository.save(category);
 
-	private Product createProduct(Category category, String baseName, int index) {
-		Product product = new Product();
-		product.setName(baseName + " " + index);
-		product.setDescription("Описание для " + baseName + " " + index);
-		product.setPrice(100.0 + index * 10.0);
-		product.setCategory(category);
-		return productRepository.save(product);
-	}
-
-	private Client createClient() {
-		Client client = new Client();
-		client.setFullName("Иван Иванов");
-		client.setExternalId(System.nanoTime()); // Гарантированно уникальное значение
-		client.setPhoneNumber("+71234567890");
-		client.setAddress("ул. Тестовая, 1");
-		return clientRepository.save(client);
+		assertNotNull(category.getId(), "Категория должна быть сохранена с непустым ID");
 	}
 
 	@Test
-	void createCategoriesAndOrders() {
-		// Создаем категории
-		Category rolls = createCategory("Роллы", null);
-		Category classicRolls = createCategory("Классические роллы", rolls);
-		Category bakedRolls = createCategory("Запеченные роллы", rolls);
+	@Transactional
+	public void testCreateProduct() {
+		Category category = new Category();
+		category.setName("Electronics");
+		category = categoryRepository.save(category);
 
-		// Создаем продукты
-		Product classicRoll1 = createProduct(classicRolls, "Классический ролл", 1);
-		Product classicRoll2 = createProduct(classicRolls, "Классический ролл", 2);
-		Product bakedRoll1 = createProduct(bakedRolls, "Запеченный ролл", 1);
+		Product product = new Product();
+		product.setName("Smartphone");
+		product.setDescription("High-end smartphone");
+		product.setPrice(999.99);
+		product.setCategory(category);
+		product = productRepository.save(product);
 
-		// Создаем клиента
-		Client client = createClient();
+		assertNotNull(product.getId(), "Продукт должен быть сохранен с непустым ID");
+	}
 
-		// Создаем заказ
-		ClientOrder order = new ClientOrder(client, 1, 0.0);
-		order = clientOrderRepository.save(order);
+	@Test
+	@Transactional
+	public void testCreateClient() {
+		Client client = new Client();
+		client.setExternalId(System.currentTimeMillis());
+		client.setFullName("John Doe");
+		client.setPhoneNumber("9876543210");
+		client.setAddress("123 Main St");
+		client = clientRepository.save(client);
 
-		// Добавляем продукты в заказ
-		OrderProduct item1 = new OrderProduct(
-				client.getFullName(),
-				classicRoll1,
-				2L,
-				order
-		);
+		assertNotNull(client.getId(), "Клиент должен быть сохранен с непустым ID");
+	}
 
-		OrderProduct item2 = new OrderProduct(
-				client.getFullName(),
-				bakedRoll1,
-				1L,
-				order
-		);
+	@Test
+	@Transactional
+	public void testCreateClientOrder() {
+		Client client = new Client();
+		client.setExternalId(System.currentTimeMillis());
+		client.setFullName("John Doe");
+		client.setPhoneNumber("9876543210");
+		client.setAddress("123 Main St");
+		client = clientRepository.save(client);
 
-		// Сохраняем элементы заказа
-		orderProductRepository.save(item1);
-		orderProductRepository.save(item2);
+		ClientOrder clientOrder = new ClientOrder(client, 1, 0.0);
+		clientOrder = clientOrderRepository.save(clientOrder);
+
+		assertNotNull(clientOrder.getId(), "Заказ клиента должен быть сохранен с непустым ID");
+	}
+
+	@Test
+	@Transactional
+	public void testCreateOrderProduct() {
+		// Создание категории
+		Category category = new Category();
+		category.setName("Electronics");
+		category = categoryRepository.save(category);
+
+		// Создание продукта
+		Product product = new Product();
+		product.setName("Smartphone");
+		product.setDescription("High-end smartphone");
+		product.setPrice(999.99);
+		product.setCategory(category);
+		product = productRepository.save(product);
+
+		// Создание клиента
+		Client client = new Client();
+		client.setExternalId(System.currentTimeMillis());
+		client.setFullName("John Doe");
+		client.setPhoneNumber("9876543210");
+		client.setAddress("123 Main St");
+		client = clientRepository.save(client);
+
+		// Создание заказа клиента
+		ClientOrder clientOrder = new ClientOrder(client, 1, 0.0);
+		clientOrder = clientOrderRepository.save(clientOrder);
+
+		// Создание OrderProduct
+		OrderProduct orderProduct = new OrderProduct();
+		orderProduct.setCustomerName("Customer_" + System.currentTimeMillis());
+		orderProduct.setProduct(product);
+		orderProduct.setCountProduct(2L);
+		orderProduct.setClientOrder(clientOrder);
+		orderProduct.setOrderDate(LocalDateTime.now());
+		orderProduct = orderProductRepository.save(orderProduct);
+
+		assertNotNull(orderProduct.getId(), "OrderProduct должен быть сохранен с непустым ID");
 	}
 }
