@@ -11,7 +11,7 @@ public class Client {
     @Column(nullable = false, unique = true)
     private Long externalId;
 
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false)
     private String fullName;
 
     @Column(nullable = false, length = 15)
@@ -20,7 +20,6 @@ public class Client {
     @Column(nullable = false, length = 400)
     private String address;
 
-    // Геттеры и сеттеры
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Long getExternalId() { return externalId; }
