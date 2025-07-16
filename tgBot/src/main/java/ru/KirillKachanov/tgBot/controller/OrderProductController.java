@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/orders/order-products")
+@RequestMapping("/orderProducts")
 public class OrderProductController {
 
     private final OrderProductRepository repository;
