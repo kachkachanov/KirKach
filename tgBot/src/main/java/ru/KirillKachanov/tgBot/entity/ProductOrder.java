@@ -2,68 +2,45 @@ package ru.KirillKachanov.tgBot.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "product_orders")
 public class ProductOrder {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private String customerName;
 
+    @Column(nullable = false)
     private LocalDateTime orderDate;
 
-    private Double totalPrice;
+    @ManyToOne
+    @JoinColumn(name = "product_id")
+    private Product product;
 
-    @OneToMany(mappedBy = "productOrder", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<OrderProduct> orderProducts = new ArrayList<>();
+    @Column(nullable = false)
+    private Long countProduct;
 
     public ProductOrder() {
     }
 
-    public ProductOrder(String customerName, LocalDateTime orderDate, Double totalPrice, List<OrderProduct> orderProducts) {
+    public ProductOrder(String customerName, LocalDateTime orderDate, Product product, Long countProduct) {
         this.customerName = customerName;
         this.orderDate = orderDate;
-        this.totalPrice = totalPrice;
-        this.orderProducts = orderProducts;
+        this.product = product;
+        this.countProduct = countProduct;
     }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-
     public String getCustomerName() { return customerName; }
     public void setCustomerName(String customerName) { this.customerName = customerName; }
-
     public LocalDateTime getOrderDate() { return orderDate; }
     public void setOrderDate(LocalDateTime orderDate) { this.orderDate = orderDate; }
-
-    public Double getTotalPrice() { return totalPrice; }
-    public void setTotalPrice(Double totalPrice) { this.totalPrice = totalPrice; }
-
-    public List<OrderProduct> getOrderProducts() { return orderProducts; }
-    public void setOrderProducts(List<OrderProduct> orderProducts) { this.orderProducts = orderProducts; }
-
-    // Если тебе нужно просто получить список продуктов без количества
-    @Transient
-    public List<Product> getProducts() {
-        return orderProducts.stream()
-                .map(OrderProduct::getProduct)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public String toString() {
-        return "ProductOrder{" +
-                "id=" + id +
-                ", customerName='" + customerName + '\'' +
-                ", orderDate=" + orderDate +
-                ", totalPrice=" + totalPrice +
-                ", products=" + getProducts() +
-                '}';
-    }
+    public Product getProduct() { return product; }
+    public void setProduct(Product product) { this.product = product; }
+    public Long getCountProduct() { return countProduct; }
+    public void setCountProduct(Long countProduct) { this.countProduct = countProduct; }
 }

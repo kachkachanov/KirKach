@@ -1,12 +1,17 @@
 package ru.KirillKachanov.tgBot;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import ru.KirillKachanov.tgBot.entity.Category;
 import ru.KirillKachanov.tgBot.entity.Product;
+import ru.KirillKachanov.tgBot.entity.ProductOrder;
 import ru.KirillKachanov.tgBot.repository.CategoryRepository;
+import ru.KirillKachanov.tgBot.repository.ProductOrderRepository;
 import ru.KirillKachanov.tgBot.repository.ProductRepository;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import java.time.LocalDateTime;
+
 @SpringBootTest
 class FillingCategoryProductTests {
 
@@ -16,8 +21,11 @@ class FillingCategoryProductTests {
 	@Autowired
 	private ProductRepository productRepository;
 
+	@Autowired
+	private ProductOrderRepository orderRepository;
+
 	@Test
-	void createCategoriesAndProducts() {
+	void createCategoriesAndOrders() {
 		// Корневые категории
 		Category pizza = saveCategory("Пицца", null);
 		Category rolls = saveCategory("Роллы", null);
@@ -53,6 +61,11 @@ class FillingCategoryProductTests {
 		addProductsToCategory(energy, "Энергетик");
 		addProductsToCategory(juice, "Сок");
 		addProductsToCategory(otherDrinks, "Напиток");
+
+		// Создание заказа с несколькими товарами
+		LocalDateTime orderDate = LocalDateTime.now();
+		String customerName = "Иван Иванов";
+
 	}
 
 	private Category saveCategory(String name, Category parent) {
