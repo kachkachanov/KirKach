@@ -38,6 +38,7 @@ class FillingTests {
 		productRepository.deleteAll();
 		clientRepository.deleteAll();
 		categoryRepository.deleteAll();
+		System.out.println("После очистки: OrderProducts = " + orderProductRepository.findAll().size());
 	}
 
 	@Test
