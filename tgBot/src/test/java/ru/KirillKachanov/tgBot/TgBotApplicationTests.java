@@ -50,7 +50,6 @@ class FillingCategoryProductTests {
 		// Продукты
 		addProductsToCategory(classicRolls, "Классический ролл");
 		addProductsToCategory(bakedRolls, "Запеченный ролл");
-
 	}
 
 	private Category saveCategory(String name, Category parent) {
