@@ -21,7 +21,7 @@ public class ClientOrder {
     private Double total;
 
     @OneToMany(mappedBy = "clientOrder", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ProductOrder> productOrders = new ArrayList<>();
+    private List<OrderProduct> productOrders = new ArrayList<>();
 
     public ClientOrder() {
     }
@@ -44,11 +44,11 @@ public class ClientOrder {
     public Double getTotal() { return total; }
     public void setTotal(Double total) { this.total = total; }
 
-    public List<ProductOrder> getProductOrders() { return productOrders; }
-    public void setProductOrders(List<ProductOrder> productOrders) { this.productOrders = productOrders; }
+    public List<OrderProduct> getProductOrders() { return productOrders; }
+    public void setProductOrders(List<OrderProduct> productOrders) { this.productOrders = productOrders; }
 
     // Метод для добавления ProductOrder
-    public void addProductOrder(ProductOrder productOrder) {
+    public void addProductOrder(OrderProduct productOrder) {
         productOrders.add(productOrder);
         productOrder.setClientOrder(this);
     }

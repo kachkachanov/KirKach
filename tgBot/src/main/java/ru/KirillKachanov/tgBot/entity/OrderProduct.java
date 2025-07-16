@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "product_orders")
-public class ProductOrder {
+public class OrderProduct {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -27,10 +27,10 @@ public class ProductOrder {
     @JoinColumn(name = "client_order_id")
     private ClientOrder clientOrder;
 
-    public ProductOrder() {
+    public OrderProduct() {
     }
 
-    public ProductOrder(String customerName, LocalDateTime orderDate, Product product, Long countProduct, ClientOrder clientOrder) {
+    public OrderProduct(String customerName, LocalDateTime orderDate, Product product, Long countProduct, ClientOrder clientOrder) {
         this.customerName = customerName;
         this.orderDate = orderDate;
         this.product = product;

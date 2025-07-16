@@ -1,10 +1,7 @@
 package ru.KirillKachanov.tgBot;
 
 import ru.KirillKachanov.tgBot.entity.Category;
-import ru.KirillKachanov.tgBot.entity.Client;
-import ru.KirillKachanov.tgBot.entity.ClientOrder;
 import ru.KirillKachanov.tgBot.entity.Product;
-import ru.KirillKachanov.tgBot.entity.ProductOrder;
 import ru.KirillKachanov.tgBot.repository.CategoryRepository;
 import ru.KirillKachanov.tgBot.repository.ClientOrderRepository;
 import ru.KirillKachanov.tgBot.repository.ClientRepository;
@@ -13,9 +10,6 @@ import ru.KirillKachanov.tgBot.repository.ProductRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-
-import java.time.LocalDateTime;
-import java.util.List;
 
 @SpringBootTest
 class FillingCategoryProductTests {
