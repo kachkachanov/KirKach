@@ -51,35 +51,6 @@ class FillingCategoryProductTests {
 		addProductsToCategory(classicRolls, "Классический ролл");
 		addProductsToCategory(bakedRolls, "Запеченный ролл");
 
-		// Клиент
-		Client client = new Client();
-		client.setName("Иван Иванов");
-		clientRepository.save(client);
-
-		// Заказ клиента
-		ClientOrder clientOrder = new ClientOrder(client, 1, 0.0); // status = 1 (например, "в процессе")
-		clientOrderRepository.save(clientOrder);
-
-		// Продукты в заказе
-		LocalDateTime orderDate = LocalDateTime.now();
-		Product classicRoll1 = productRepository.findAllByCategory(classicRolls).get(0);
-		Product bakedRoll1 = productRepository.findAllByCategory(bakedRolls).get(0);
-
-		ProductOrder order1 = new ProductOrder("Иван Иванов", orderDate, classicRoll1, 2L, clientOrder);
-		ProductOrder order2 = new ProductOrder("Иван Иванов", orderDate, bakedRoll1, 1L, clientOrder);
-
-		orderRepository.save(order1);
-		orderRepository.save(order2);
-
-		// Динамическое вычисление общей стоимости
-		Double total = orderRepository.findAllByClientOrder(clientOrder)
-				.stream()
-				.mapToDouble(order -> order.getProduct().getPrice() * order.getCountProduct())
-				.sum();
-		clientOrder.setTotal(total);
-		clientOrderRepository.save(clientOrder);
-
-		System.out.println("Общая стоимость заказа для " + client.getName() + ": " + total);
 	}
 
 	private Category saveCategory(String name, Category parent) {
