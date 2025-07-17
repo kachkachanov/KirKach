@@ -36,58 +36,32 @@ public class EntitiesServiceImpl implements EntitiesService {
 
     @Override
     public List<Product> getProductsByCategoryId(Long categoryId) {
-        return productRepo.findAll().stream()
-                .filter(p -> p.getCategory().getId().equals(categoryId))
-                .collect(Collectors.toList());
+        return productRepo.findByCategoryId(categoryId);
     }
 
     @Override
     public List<ClientOrder> getClientOrders(Long clientId) {
-        return orderRepo.findAll().stream()
-                .filter(o -> o.getClient().getId().equals(clientId))
-                .collect(Collectors.toList());
+        return orderRepo.findByClientId(clientId);
     }
 
     @Override
     public List<Product> getClientProducts(Long clientId) {
-        List<ClientOrder> orders = getClientOrders(clientId);
-        List<Long> orderIds = orders.stream().map(ClientOrder::getId).toList();
-        return orderProductRepo.findAll().stream()
-                .filter(op -> orderIds.contains(op.getClientOrder().getId()))
-                .map(OrderProduct::getProduct)
-                .distinct()
-                .collect(Collectors.toList());
+        return orderProductRepo.findAllProductsByClientId(clientId);
     }
 
     @Override
     public List<Product> getTopPopularProducts(Integer limit) {
-        Map<Product, Integer> popularityMap = new HashMap<>();
-
-        for (OrderProduct op : orderProductRepo.findAll()) {
-            Product product = op.getProduct();
-            popularityMap.put(product,
-                    popularityMap.getOrDefault(product, 0) + op.getCountProduct());
-        }
-
-        return popularityMap.entrySet().stream()
-                .sorted((e1, e2) -> e2.getValue().compareTo(e1.getValue()))
-                .limit(limit)
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
+        return productRepo.findTopPopularProducts(PageRequest.of(0, limit));
     }
 
     @Override
     public List<Client> searchClientsByName(String name) {
-        return clientRepo.findAll().stream()
-                .filter(client -> client.getFullName().toLowerCase().contains(name.toLowerCase()))
-                .collect(Collectors.toList());
+        return clientRepo.searchByName(name);
     }
 
     @Override
     public List<Product> searchProductsByName(String name) {
-        return productRepo.findAll().stream()
-                .filter(product -> product.getName().toLowerCase().contains(name.toLowerCase()))
-                .collect(Collectors.toList());
+        return productRepo.searchByName(name);
     }
 }
 
