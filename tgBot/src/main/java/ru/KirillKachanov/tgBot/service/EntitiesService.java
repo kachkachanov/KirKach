@@ -1,7 +1,7 @@
 package ru.KirillKachanov.tgBot.service;
 
 import ru.KirillKachanov.tgBot.entity.*;
-
+import ru.KirillKachanov.tgBot.repository.ClientOrderRepository; // Убедитесь, что этот импорт есть, если используется в реализации
 import java.util.List;
 import java.util.Optional;
 
@@ -23,8 +23,11 @@ public interface EntitiesService {
     List<OrderProduct> getOrderProducts(ClientOrder order);
     ClientOrder getActiveOrderByClientId(Long clientId);
 
-    // Новый метод для получения продукта по ID, если нужен Product объект
+    // Новый метод для получения продукта по ID
     Product getProductById(Long productId);
-    // Новый метод для получения клиента по ID, если нужен Client объект
+    // Новый метод для получения клиента по ID
     Client getClientById(Long clientId);
+
+    // *** ДОБАВЬТЕ ЭТОТ МЕТОД ***
+    ClientOrder getOrderById(Long orderId);
 }

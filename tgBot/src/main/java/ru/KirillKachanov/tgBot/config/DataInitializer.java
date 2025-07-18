@@ -55,8 +55,6 @@ public class DataInitializer implements CommandLineRunner {
         Category juices = categoryRepository.save(createCategory("Соки", drinks));
         Category other = categoryRepository.save(createCategory("Другие", drinks));
 
-        // Добавляем продукты для Пиццы
-        addProductsToCategory(pizza, "Пицца");
 
         addProductsToCategory(classicRolls, "Ролл");
         addProductsToCategory(bakedRolls, "Запеченный ролл");

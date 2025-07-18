@@ -1,4 +1,4 @@
-package ru.KirillKachanov.tgBot;
+package ru.KirillKachanov.tgBot.connection;
 
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.UpdatesListener;
@@ -19,38 +19,48 @@ import ru.KirillKachanov.tgBot.entity.ClientOrder;
 import ru.KirillKachanov.tgBot.entity.OrderProduct;
 import ru.KirillKachanov.tgBot.entity.Product;
 import ru.KirillKachanov.tgBot.service.EntitiesService;
+import ru.KirillKachanov.tgBot.service.OpenAiService;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
+import java.util.logging.Logger;
 
 @Service
 public class TelegramBotConnection {
 
+    private static final Logger LOGGER = Logger.getLogger(TelegramBotConnection.class.getName());
+
     private final EntitiesService entitiesService;
+    private final OpenAiService openAiService;
     private TelegramBot bot;
 
     @Value("${telegram.bot.token}")
     private String botToken;
 
-
+    // Карта для хранения текущего контекста категории для каждого пользователя
     private final ConcurrentHashMap<Long, Long> userCategoryContext = new ConcurrentHashMap<>();
 
-    public TelegramBotConnection(EntitiesService entitiesService) {
+    // Карта для отслеживания режима поддержки для каждого пользователя
+    // key: chatId, value: boolean (true = в режиме поддержки, false = обычный режим)
+    private final ConcurrentHashMap<Long, Boolean> userInSupportMode = new ConcurrentHashMap<>();
+
+
+    public TelegramBotConnection(EntitiesService entitiesService, OpenAiService openAiService) {
         this.entitiesService = entitiesService;
+        this.openAiService = openAiService;
     }
 
     @PostConstruct
     public void createConnection() {
-        if (botToken == null || botToken.equals("your_bot_token")) {
-            System.err.println("Ошибка: Токен Telegram бота не настроен. Проверьте application.properties");
+        if (botToken == null || botToken.equals("your_bot_token") || botToken.isEmpty()) {
+            LOGGER.severe("Ошибка: Токен Telegram бота не настроен или пуст. Проверьте application.properties");
             return;
         }
         bot = new TelegramBot(botToken);
         bot.setUpdatesListener(new TelegramUpdatesListener());
-        System.out.println("Telegram Bot connection created. Listening for updates...");
+        LOGGER.info("Telegram Bot connection created. Listening for updates...");
     }
 
     private class TelegramUpdatesListener implements UpdatesListener {
@@ -72,7 +82,7 @@ public class TelegramBotConnection {
             Long chatId = message.chat().id();
             String text = message.text();
 
-            System.out.println("Received message from chat " + chatId + ": " + text);
+            LOGGER.info("Получено сообщение от чата " + chatId + ": " + text);
 
             Client client = entitiesService.getOrCreateClient(
                     chatId,
@@ -81,18 +91,45 @@ public class TelegramBotConnection {
                     "N/A"  // Заглушка для адреса
             );
 
-            // Создаем или получаем активный заказ для клиента (Требование 1)
             ClientOrder activeOrder = entitiesService.getOrCreateActiveOrder(client);
 
-            if ("/start".equals(text) || "В основное меню".equals(text)) {
-                // Сбрасываем контекст категории и показываем начальное меню
-                userCategoryContext.remove(chatId);
+            if (text == null) {
+                LOGGER.warning("Получено пустое текстовое сообщение. Пропускаем обработку.");
+                return;
+            }
+
+            // Проверяем, находится ли пользователь в режиме поддержки [cite: 119, 122]
+            boolean inSupportMode = userInSupportMode.getOrDefault(chatId, false);
+
+
+            if ("/start".equals(text) || "Вернуться к заказам".equals(text)) { // [cite: 124, 125]
+                userInSupportMode.put(chatId, false); // Выходим из режима поддержки [cite: 126]
+                openAiService.clearMessageHistory(chatId); // Очищаем историю AI диалога
+                userCategoryContext.remove(chatId); // Сбрасываем контекст категории
                 sendInitialMenu(chatId);
             } else if ("Оформить заказ".equals(text)) {
                 handleCheckout(chatId, activeOrder);
+            } else if ("Поддержка".equals(text)) { // [cite: 120]
+                userInSupportMode.put(chatId, true); // Входим в режим поддержки [cite: 121]
+                openAiService.clearMessageHistory(chatId); // Очищаем историю AI диалога при входе
+                bot.execute(new SendMessage(chatId, "Вы вошли в режим поддержки. Задайте свой вопрос или нажмите 'Вернуться к заказам' для выхода."));
+                sendSupportMenu(chatId); // Отправляем меню для режима поддержки [cite: 124]
             } else {
-                // Если это не команда и не кнопка оформления заказа, пытаемся обработать как выбор категории
-                handleCategorySelectionByText(chatId, text);
+                // Если пользователь НЕ в режиме поддержки, сначала пытаемся обработать как команду меню.
+                // Это нужно, чтобы кнопки меню (например, "Бургеры") работали как обычные кнопки,
+                // а не отправлялись в AI как запрос.
+                boolean isHandledAsMenuCommand = false;
+                if (!inSupportMode) {
+                    isHandledAsMenuCommand = handleCategorySelectionByText(chatId, text);
+                }
+
+                // Если сообщение не было обработано как команда меню ИЛИ мы в режиме поддержки,
+                // то отправляем его в AI для обработки естественного языка.
+                if (!isHandledAsMenuCommand || inSupportMode) { // [cite: 5]
+                    handleAiSupportRequest(chatId, text); // [cite: 6, 7, 8, 9, 10]
+                }
+                // Если сообщение было обработано как команда меню, то тут ничего делать не нужно,
+                // т.к. handleCategorySelectionByText уже отправил соответствующее меню.
             }
         }
 
@@ -100,7 +137,13 @@ public class TelegramBotConnection {
             Long chatId = callbackQuery.message().chat().id();
             String data = callbackQuery.data();
 
-            System.out.println("Received callback query from chat " + chatId + ": " + data);
+            LOGGER.info("Получен callback query от чата " + chatId + ": " + data);
+
+            // Если пользователь в режиме поддержки, игнорируем callbackQuery (или обрабатываем по-особому)
+            if (userInSupportMode.getOrDefault(chatId, false)) {
+                bot.execute(new SendMessage(chatId, "Inline-кнопки не активны в режиме поддержки. Используйте текстовый ввод или 'Вернуться к заказам'."));
+                return;
+            }
 
             Client client = entitiesService.getOrCreateClient(
                     chatId,
@@ -112,44 +155,65 @@ public class TelegramBotConnection {
 
             if (data.startsWith("product:")) {
                 Long productId = Long.parseLong(data.substring("product:".length()));
-                entitiesService.addProductToOrder(activeOrder, productId); // Добавляем продукт в заказ
+                entitiesService.addProductToOrder(activeOrder, productId);
                 Product addedProduct = entitiesService.getProductById(productId);
                 if (addedProduct != null) {
-                    bot.execute(new SendMessage(chatId, "'" + addedProduct.getName() + "' добавлен в заказ."));
+                    bot.execute(new SendMessage(chatId, "'" + addedProduct.getName() + "' добавлен в заказ.")); //
                 }
-                // После добавления продукта остаемся в той же категории, показывая ее меню снова
                 Long currentCategoryId = userCategoryContext.get(chatId);
                 if (currentCategoryId != null) {
                     sendMenuForCategory(chatId, currentCategoryId);
                 } else {
-                    sendInitialMenu(chatId); // Если контекст потерян (чего быть не должно), возвращаемся в главное меню
+                    sendInitialMenu(chatId);
                 }
             }
         }
 
         private void sendInitialMenu(Long chatId) {
-            List<Category> categories = entitiesService.getCategoriesByParentId(null); // Категории верхнего уровня
-            System.out.println("EntitiesService returned " + categories.size() + " top-level categories for initial menu.");
+            List<Category> categories = entitiesService.getCategoriesByParentId(null);
+            LOGGER.info("EntitiesService вернул " + categories.size() + " категорий верхнего уровня для начального меню.");
 
-            ReplyKeyboardMarkup markup = createReplyKeyboardMarkup(categories, false); // false = не показывать "В основное меню"
+            // Создаем ReplyKeyboardMarkup. Теперь добавляем кнопку "Поддержка" [cite: 120]
+            ReplyKeyboardMarkup markup = createReplyKeyboardMarkup(categories, false, true); // Включаем "Поддержку", не включаем "В основное меню"
 
-            bot.execute(new SendMessage(chatId, "Выберите категорию:")
+            bot.execute(new SendMessage(chatId, "Выберите категорию:") //
                     .replyMarkup(markup));
 
             if (categories.isEmpty()) {
-                bot.execute(new SendMessage(chatId, "Категории пока не настроены в системе."));
+                bot.execute(new SendMessage(chatId, "Категории пока не настроены в системе.")); //
             }
         }
 
-        private void handleCategorySelectionByText(Long chatId, String categoryName) {
-            Long currentContextCategoryId = userCategoryContext.get(chatId); // ID текущей отображаемой категории
+        private void sendSupportMenu(Long chatId) {
+            ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup(
+                    new KeyboardButton("Вернуться к заказам") // [cite: 123, 124]
+            ).resizeKeyboard(true);
+
+            bot.execute(new SendMessage(chatId, "Вы в режиме поддержки. Задайте свой вопрос или нажмите 'Вернуться к заказам' для выхода.")
+                    .replyMarkup(markup));
+        }
+
+        private void handleAiSupportRequest(Long chatId, String userText) {
+            // Отправляем запрос в OpenAiService и получаем ответ
+            String aiResponse = openAiService.send(chatId, userText);
+            bot.execute(new SendMessage(chatId, aiResponse));
+            sendSupportMenu(chatId); // Показываем меню поддержки снова
+        }
+
+        /**
+         * Обрабатывает текстовый ввод как выбор категории.
+         *
+         * @param chatId       Идентификатор чата.
+         * @param categoryName Название категории из сообщения пользователя.
+         * @return true, если сообщение было обработано как выбор категории, false в противном случае.
+         */
+        private boolean handleCategorySelectionByText(Long chatId, String categoryName) {
+            Long currentContextCategoryId = userCategoryContext.get(chatId);
 
             List<Category> categoriesToCheck;
             if (currentContextCategoryId == null) {
-                // Если мы в основном меню, ищем среди категорий верхнего уровня
                 categoriesToCheck = entitiesService.getCategoriesByParentId(null);
             } else {
-                // Если мы внутри категории, ищем среди ее подкатегорий
                 categoriesToCheck = entitiesService.getCategoriesByParentId(currentContextCategoryId);
             }
 
@@ -158,34 +222,24 @@ public class TelegramBotConnection {
                     .findFirst();
 
             if (selectedCategory.isPresent()) {
-                // Пользователь выбрал существующую категорию. Обновляем контекст и показываем новое меню.
                 userCategoryContext.put(chatId, selectedCategory.get().getId());
                 sendMenuForCategory(chatId, selectedCategory.get().getId());
+                return true; // Обработано как категория
             } else {
-                // Неизвестная команда или категория. Повторно отправляем текущее меню.
-                bot.execute(new SendMessage(chatId, "Неизвестная команда или категория. Пожалуйста, используйте кнопки."));
-                if (currentContextCategoryId != null) {
-                    sendMenuForCategory(chatId, currentContextCategoryId);
-                } else {
-                    sendInitialMenu(chatId);
-                }
+                // Это не категория, возможно, это запрос для AI
+                return false; // Не обработано как категория
             }
         }
 
         private void sendMenuForCategory(Long chatId, Long categoryId) {
-            // Получаем подкатегории выбранной категории
             List<Category> subcategories = entitiesService.getCategoriesByParentId(categoryId);
-            // Получаем товары для выбранной категории
             List<Product> products = entitiesService.getProductsByCategoryIdForDisplay(categoryId);
 
-            // Создаем ReplyKeyboardMarkup для подкатегорий и основных кнопок
-            // Здесь кнопка "В основное меню" должна присутствовать, так как это не начальное меню
-            ReplyKeyboardMarkup replyMarkup = createReplyKeyboardMarkup(subcategories, true);
+            ReplyKeyboardMarkup replyMarkup = createReplyKeyboardMarkup(subcategories, true, false); // Включаем "В основное меню", не включаем "Поддержку"
 
             bot.execute(new SendMessage(chatId, "Выберите подкатегорию или товар:")
                     .replyMarkup(replyMarkup));
 
-            // Если есть продукты, отправляем их отдельно с InlineKeyboardMarkup
             if (!products.isEmpty()) {
                 InlineKeyboardMarkup inlineMarkup = new InlineKeyboardMarkup();
                 for (Product product : products) {
@@ -193,18 +247,17 @@ public class TelegramBotConnection {
                             .callbackData("product:" + product.getId());
                     inlineMarkup.addRow(button);
                 }
-                bot.execute(new SendMessage(chatId, "Для выбора товара нажмите на кнопку ниже:")
+                bot.execute(new SendMessage(chatId, "Для выбора товара нажмите на кнопку ниже:") //
                         .replyMarkup(inlineMarkup));
             } else if (subcategories.isEmpty() && products.isEmpty()) {
-                // Если нет ни подкатегорий, ни продуктов в данной категории
                 bot.execute(new SendMessage(chatId, "В данной категории пока нет ни подкатегорий, ни товаров. Возвращаемся в основное меню."));
-                userCategoryContext.remove(chatId); // Сбрасываем контекст
+                userCategoryContext.remove(chatId);
                 sendInitialMenu(chatId);
             }
         }
 
         // Вспомогательный метод для создания ReplyKeyboardMarkup
-        private ReplyKeyboardMarkup createReplyKeyboardMarkup(List<Category> categories, boolean includeGoToMainMenu) {
+        private ReplyKeyboardMarkup createReplyKeyboardMarkup(List<Category> categories, boolean includeGoToMainMenu, boolean includeSupportButton) {
             ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup(new KeyboardButton[][]{})
                     .resizeKeyboard(true);
 
@@ -220,13 +273,18 @@ public class TelegramBotConnection {
                 }
             }
 
-            // Добавляем основные кнопки: "Оформить заказ" и "В основное меню" (если требуется)
-            List<KeyboardButton> mainButtons = new ArrayList<>();
-            mainButtons.add(new KeyboardButton("Оформить заказ"));
+            // Добавляем основные кнопки: "Оформить заказ", "В основное меню" (если требуется), "Поддержка" (если требуется)
+            List<KeyboardButton> utilityButtonsRow1 = new ArrayList<>();
+            utilityButtonsRow1.add(new KeyboardButton("Оформить заказ"));
             if (includeGoToMainMenu) {
-                mainButtons.add(new KeyboardButton("В основное меню"));
+                utilityButtonsRow1.add(new KeyboardButton("В основное меню"));
             }
-            markup.addRow(mainButtons.toArray(new KeyboardButton[0]));
+            if (includeSupportButton) {
+                utilityButtonsRow1.add(new KeyboardButton("Поддержка")); // [cite: 120]
+            }
+            if (!utilityButtonsRow1.isEmpty()) {
+                markup.addRow(utilityButtonsRow1.toArray(new KeyboardButton[0]));
+            }
 
             return markup;
         }
@@ -236,7 +294,6 @@ public class TelegramBotConnection {
 
             if (orderProducts.isEmpty()) {
                 bot.execute(new SendMessage(chatId, "Ваш заказ пуст. Добавьте товары перед оформлением."));
-                // Возвращаем пользователя в текущее меню или в основное
                 Long currentCategoryId = userCategoryContext.get(chatId);
                 if (currentCategoryId != null) {
                     sendMenuForCategory(chatId, currentCategoryId);
@@ -246,7 +303,7 @@ public class TelegramBotConnection {
                 return;
             }
 
-            StringBuilder orderSummary = new StringBuilder("Ваш заказ:\n");
+            StringBuilder orderSummary = new StringBuilder("Ваш заказ:\n"); //
             for (OrderProduct op : orderProducts) {
                 orderSummary.append(String.format("%s %dx%.2f=%.2f руб.\n",
                         op.getProduct().getName(),
@@ -257,19 +314,20 @@ public class TelegramBotConnection {
             Double total = entitiesService.calculateOrderTotal(activeOrder);
             orderSummary.append(String.format("Итого %.2f руб.", total));
 
-            bot.execute(new SendMessage(chatId, orderSummary.toString()));
+            bot.execute(new SendMessage(chatId, orderSummary.toString())); //
 
             try {
-                entitiesService.closeOrder(activeOrder); // Закрываем заказ
-                // Создаем новый активный заказ для этого клиента (Требование 4)
+                entitiesService.closeOrder(activeOrder);
                 Client client = entitiesService.getClientById(activeOrder.getClient().getId());
                 if (client != null) {
                     entitiesService.getOrCreateActiveOrder(client);
                 }
 
-                bot.execute(new SendMessage(chatId, "Заказ №" + activeOrder.getId() + " подтвержден. Курьер уже едет к Вам по адресу 4. Приблизительное время доставки 90 мин."));
-                userCategoryContext.remove(chatId); // Сбрасываем контекст после оформления заказа
-                sendInitialMenu(chatId); // Возвращаемся в главное меню
+                bot.execute(new SendMessage(chatId, "Заказ №" + activeOrder.getId() + " подтвержден. Курьер уже едет к Вам по адресу 4. Приблизительное время доставки 90 мин.")); //
+                userCategoryContext.remove(chatId);
+                userInSupportMode.put(chatId, false);
+                openAiService.clearMessageHistory(chatId);
+                sendInitialMenu(chatId);
             } catch (IllegalStateException e) {
                 bot.execute(new SendMessage(chatId, "Ошибка при оформлении заказа: " + e.getMessage()));
                 Long currentCategoryId = userCategoryContext.get(chatId);

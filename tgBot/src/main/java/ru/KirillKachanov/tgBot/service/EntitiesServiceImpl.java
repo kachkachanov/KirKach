@@ -15,18 +15,18 @@ public class EntitiesServiceImpl implements EntitiesService {
 
     private final ProductRepository productRepo;
     private final ClientRepository clientRepo;
-    private final ClientOrderRepository orderRepo;
+    private final ClientOrderRepository orderRepo; // Renamed from orderRepo to clientOrderRepository for clarity in constructor
     private final OrderProductRepository orderProductRepo;
     private final CategoryRepository categoryRepo;
 
     public EntitiesServiceImpl(ProductRepository productRepo,
                                ClientRepository clientRepo,
-                               ClientOrderRepository orderRepo,
+                               ClientOrderRepository orderRepo, // Use 'orderRepo' as parameter name to match field
                                OrderProductRepository orderProductRepo,
                                CategoryRepository categoryRepo) {
         this.productRepo = productRepo;
         this.clientRepo = clientRepo;
-        this.orderRepo = orderRepo;
+        this.orderRepo = orderRepo; // Assign to 'orderRepo' field
         this.orderProductRepo = orderProductRepo;
         this.categoryRepo = categoryRepo;
     }
@@ -162,5 +162,11 @@ public class EntitiesServiceImpl implements EntitiesService {
     @Override
     public Client getClientById(Long clientId) {
         return clientRepo.findById(clientId).orElse(null);
+    }
+
+    // ⭐ THIS IS THE MISSING METHOD IMPLEMENTATION ⭐
+    @Override
+    public ClientOrder getOrderById(Long orderId) {
+        return orderRepo.findById(orderId).orElse(null);
     }
 }
